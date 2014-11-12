@@ -7,7 +7,7 @@ import com.equinix.deg.dblayer.Siebel;
 public class Batch {
 
 	public void test_siebel_to_hive_table_deninition() {
-		String tableName = DataTables.table_name[0];
+		String tableName = DataTables.table_name[10];
 		Hive2 hive2 = new Hive2();
 		Siebel siebel = new Siebel();
 		String hql = siebel.hiveCreateTable(tableName);

@@ -50,44 +50,45 @@ public class Siebel {
 	}
 	
     public COLNAME_TYPE[] getColNameTypes(String tablename) {
-    		if (verbose == 1) 
-    			System.out.println(String.format("--- TABLE: %s ---", tablename));
-        String query = String.format("SELECT * FROM %s WHERE ROWNUM < 2", tablename); 
-        COLNAME_TYPE[] colnametype = null;    	
-        Statement stmt;
-		try {
-			stmt = connection.createStatement();
-	        stmt.execute(query);
-	
-	        ResultSet rs = stmt.getResultSet();
-	
-	        ResultSetMetaData meta = rs.getMetaData();
-	
-	        colnametype = new COLNAME_TYPE[meta.getColumnCount()];
-	        
-	        
-	        int n = 0;
-	        for (int i=1; i<=meta.getColumnCount(); i++) {
-	        		if (verbose == 1)
-	        			System.out.println(String.format("# %d --- %s: %s \t%s \t%s \t%s", i ,
-	        					meta.getColumnLabel(i), 
-	        					meta.getColumnTypeName(i),
-	        					meta.getColumnType(i),
-	        					meta.getPrecision(i),
-	        					meta.getScale(i)));
-	            colnametype[n++] = new COLNAME_TYPE(meta.getColumnLabel(i), 
-	            		meta.getColumnTypeName(i),
-	            		meta.getPrecision(i),
-	            		meta.getScale(i));
-	        }
+		if (verbose == 1) 
+			System.out.println(String.format("--- TABLE: %s ---", tablename));
+    String query = String.format("SELECT * FROM %s WHERE ROWNUM < 2", tablename); 
+    COLNAME_TYPE[] colnametype = null;    	
+    Statement stmt;
+	try {
+		stmt = connection.createStatement();
+        stmt.execute(query);
+
+        ResultSet rs = stmt.getResultSet();
+
+        ResultSetMetaData meta = rs.getMetaData();
+
+        colnametype = new COLNAME_TYPE[meta.getColumnCount()];
+        
+        
+        int n = 0;
+        for (int i=1; i<=meta.getColumnCount(); i++) {
+        		if (verbose == 1)
+        			System.out.println(String.format("# %d --- %s: %s \t%s \t%s \t%s", i ,
+        					meta.getColumnLabel(i), 
+        					meta.getColumnTypeName(i),
+        					meta.getColumnType(i),
+        					meta.getPrecision(i),
+        					meta.getScale(i)));
+            colnametype[n++] = new COLNAME_TYPE(meta.getColumnLabel(i), 
+            		meta.getColumnTypeName(i),
+            		meta.getPrecision(i),
+            		meta.getScale(i));
+        }
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-    	
+		
 		return colnametype;
-    }
-    
+	}
+
+
     public String hiveCreateTable(String tableName, COLNAME_TYPE[] colname) {
     		String hql = String.format("CREATE TABLE IF NOT EXISTS %s (\n", tableName);
     		int nk = 0;
@@ -231,12 +232,14 @@ public class Siebel {
 			volume += nrow;
 			System.out.println(String.format("# rows for table %s: %d", table_name, nrow));
 		}
+		
 		System.out.println(String.format("Total Row Volume: %d", volume));
 		System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~");
-		COLNAME_TYPE[] cols = siebel.getColNameTypes("SIEBEL.S_ORDER");
+		COLNAME_TYPE[] cols = siebel.getColNameTypes("SIEBEL.S_ORDER_X");
 		System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~");
-		String hql = siebel.hiveCreateTable("SIEBEL.S_ORDER", cols);
+		String hql = siebel.hiveCreateTable("SIEBEL.S_ORDER_X", cols);
 		System.out.println(hql);
+		
 	}
 
 }

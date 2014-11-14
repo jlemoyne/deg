@@ -1,4 +1,4 @@
-package com.equinix.deg.dblayer;
+package com.equinix.deg.sqoop;
 
 import java.util.List;
 import java.util.ResourceBundle;
@@ -38,8 +38,86 @@ public class SqoopClientAccess {
 		 }
 	}	
 	
-	public static void exportJob(String jobName, String schemaName, String tableName, String sqlQuery) {
+	public static void exportJob(String jobName, long xid, String schemaName, String tableName, String sqlQuery) {
 		SqoopClient client = new SqoopClient(url);
+		MJob newjob = client.newJob(xid, org.apache.sqoop.model.MJob.Type.EXPORT);
+		MJobForms connectorForm = newjob.getConnectorPart();
+		MJobForms frameworkForm = newjob.getFrameworkPart();
+
+		newjob.setName(jobName);
+		//Database configuration
+		connectorForm.getStringInput("table.schemaName").setValue(schemaName);
+		//Input either table name or sql
+		if (tableName != null)
+			connectorForm.getStringInput("table.tableName").setValue(tableName);
+		else connectorForm.getStringInput("table.sql").setValue(sqlQuery);
+		connectorForm.getStringInput("table.columns").setValue("ROW_ID,ORDER_DT");
+//		connectorForm.getStringInput("table.columns").setValue("*");
+
+		//Input configurations
+		frameworkForm.getStringInput("input.inputDirectory").setValue("/input");
+
+		//Job resources
+		frameworkForm.getIntegerInput("throttling.extractors").setValue(1);
+		frameworkForm.getIntegerInput("throttling.loaders").setValue(1);
+
+		Status status = client.createJob(newjob);
+		if(status.canProceed()) {
+		  System.out.println("New Job ID: "+ newjob.getPersistenceId());
+		} else {
+		  System.out.println("Check for status and forms error ");
+		}
+
+		//Print errors or warnings
+		printMessage(newjob.getConnectorPart().getForms());
+		printMessage(newjob.getFrameworkPart().getForms());
+	
+	}
+	
+	public static void createImportJob(	SqoopClient client, String jobName, 
+										String schemaName, String tableName, String sqlQuery,
+										String partitionCol) {
+		//Creating dummy job object
+		MJob newjob = client.newJob(1, org.apache.sqoop.model.MJob.Type.IMPORT);
+		MJobForms connectorForm = newjob.getConnectorPart();
+		MJobForms frameworkForm = newjob.getFrameworkPart();
+
+		newjob.setName(jobName);
+		//Database configuration
+		connectorForm.getStringInput("table.schemaName").setValue(schemaName);
+		//Input either table name or sql
+		if (tableName != null)
+			connectorForm.getStringInput("table.tableName").setValue(tableName);
+		else
+			connectorForm.getStringInput("table.sql").setValue(sqlQuery);
+		
+//		connectorForm.getStringInput("table.columns").setValue("id,name");
+		connectorForm.getStringInput("table.partitionColumn").setValue(partitionCol);
+		//Set boundary value only if required
+		//connectorForm.getStringInput("table.boundaryQuery").setValue("");
+
+		//Output configurations
+		frameworkForm.getEnumInput("output.storageType").setValue("HDFS");
+		frameworkForm.getEnumInput("output.outputFormat").setValue("TEXT_FILE");//Other option: SEQUENCE_FILE
+		frameworkForm.getStringInput("output.outputDirectory").setValue("/user/gse/sqoop");
+
+		//Job resources
+		frameworkForm.getIntegerInput("throttling.extractors").setValue(1);
+		frameworkForm.getIntegerInput("throttling.loaders").setValue(1);
+
+		Status status = client.createJob(newjob);
+		if(status.canProceed()) {
+		 System.out.println("New Job ID: "+ newjob.getPersistenceId());
+		} else {
+		 System.out.println("Check for status and forms error ");
+		}
+
+		//Print errors or warnings
+		printMessage(newjob.getConnectorPart().getForms());
+		printMessage(newjob.getFrameworkPart().getForms());	
+	}
+	
+	public static void createExportJob(SqoopClient client, String jobName, String schemaName, String tableName, String sqlQuery) {
 		MJob newjob = client.newJob(1, org.apache.sqoop.model.MJob.Type.EXPORT);
 		MJobForms connectorForm = newjob.getConnectorPart();
 		MJobForms frameworkForm = newjob.getFrameworkPart();
@@ -51,7 +129,8 @@ public class SqoopClientAccess {
 		if (tableName != null)
 			connectorForm.getStringInput("table.tableName").setValue(tableName);
 		else connectorForm.getStringInput("table.sql").setValue(sqlQuery);
-		connectorForm.getStringInput("table.columns").setValue("id,name");
+		connectorForm.getStringInput("table.columns").setValue("ROW_ID,ORDER_DT");
+//		connectorForm.getStringInput("table.columns").setValue("*");
 
 		//Input configurations
 		frameworkForm.getStringInput("input.inputDirectory").setValue("/input");
@@ -79,8 +158,7 @@ public class SqoopClientAccess {
 		//Get connection and framework forms. Set name for connection
 		MConnectionForms conForms = conn1.getConnectorPart();
 		MConnectionForms frameworkForms = conn1.getFrameworkPart();
-		conn1.setName("Alpha");
-				
+		conn1.setName("Alpha");		
 		
 		//Set connection forms values
 		conForms.getStringInput("connection.connectionString").setValue("jdbc:oracle:thin:@10.193.152.163:1521:INTSBL");
@@ -110,7 +188,15 @@ public class SqoopClientAccess {
 		describe(client.getConnection(1).getConnectorPart().getForms(), client.getResourceBundle(1));
 		describe(client.getConnection(1).getFrameworkPart().getForms(), client.getFrameworkResourceBundle());
 		
-//		client.deleteConnection(1);;
+//		client.deleteConnection(1);
+		
+//		exportJob("ex_test" + conn1.getPersistenceId(), conn1.getPersistenceId(), "SIEBEL", "S_ORDER", null);
+//		createExportJob(client, "ex_test" + conn1.getPersistenceId(), "SIEBEL", "S_ORDER", null);
+//		client.stopSubmission(2);
+		
+		createImportJob(client, "eximp" + conn1.getPersistenceId(), 
+				"SIEBEL", "S_ORDER", null, "ORDER_DT");
+		
 		
 	}
 

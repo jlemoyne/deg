@@ -207,10 +207,12 @@ public class Siebel {
     		}
     		hql += ")";
     		hql += "\nCOMMENT 'CONVERTED From Siebel/Oracle Table'";
+    		hql += "\nPARTITIONED BY(dt_ordered DATE)";
+    		hql += "\nCLUSTERED BY(ORDER_DT) SORTED BY(CUSTOMER_ID) INTO 32 BUCKETS";
     		hql += "\nROW FORMAT DELIMITED\n\tFIELDS TERMINATED BY \"\\t\"";
     		hql += "\n\tLINES TERMINATED BY \"\\n\"";
 //    		hql += "\nSTORED AS ORC";
-    		hql += "\nSTORED AS TEXT";
+    		hql += "\nSTORED AS TEXTFILE";
     		
     		if (verbose == 1) {
     			System.out.println(String.format("~~~ #field read: %d, converted: %d", colname.length, nk));

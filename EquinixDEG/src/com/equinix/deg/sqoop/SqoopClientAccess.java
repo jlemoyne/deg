@@ -5,6 +5,9 @@ import java.util.ResourceBundle;
 
 import org.apache.sqoop.client.*;
 import org.apache.sqoop.model.*;
+import org.apache.sqoop.submission.counter.Counter;
+import org.apache.sqoop.submission.counter.CounterGroup;
+import org.apache.sqoop.submission.counter.Counters;
 import org.apache.sqoop.validation.Status;
 
 public class SqoopClientAccess {
@@ -74,9 +77,10 @@ public class SqoopClientAccess {
 	
 	}
 	
-	public static void createImportJob(	SqoopClient client, String jobName, 
+	public static long createImportJob(	SqoopClient client, String jobName, 
 										String schemaName, String tableName, String sqlQuery,
 										String partitionCol) {
+		long jobid = -1;
 		//Creating dummy job object
 		MJob newjob = client.newJob(1, org.apache.sqoop.model.MJob.Type.IMPORT);
 		MJobForms connectorForm = newjob.getConnectorPart();
@@ -99,7 +103,7 @@ public class SqoopClientAccess {
 		//Output configurations
 		frameworkForm.getEnumInput("output.storageType").setValue("HDFS");
 		frameworkForm.getEnumInput("output.outputFormat").setValue("TEXT_FILE");//Other option: SEQUENCE_FILE
-		frameworkForm.getStringInput("output.outputDirectory").setValue("/user/gse/sqoop");
+		frameworkForm.getStringInput("output.outputDirectory").setValue(String.format("/user/gse/%s.%s", schemaName, tableName));
 
 		//Job resources
 		frameworkForm.getIntegerInput("throttling.extractors").setValue(1);
@@ -107,14 +111,18 @@ public class SqoopClientAccess {
 
 		Status status = client.createJob(newjob);
 		if(status.canProceed()) {
-		 System.out.println("New Job ID: "+ newjob.getPersistenceId());
+			jobid = newjob.getPersistenceId();
+			System.out.println("New Job ID: "+ jobid);
 		} else {
 		 System.out.println("Check for status and forms error ");
 		}
 
 		//Print errors or warnings
 		printMessage(newjob.getConnectorPart().getForms());
-		printMessage(newjob.getFrameworkPart().getForms());	
+		printMessage(newjob.getFrameworkPart().getForms());
+		
+		return jobid;
+		
 	}
 	
 	public static void createExportJob(SqoopClient client, String jobName, String schemaName, String tableName, String sqlQuery) {
@@ -150,6 +158,43 @@ public class SqoopClientAccess {
 		printMessage(newjob.getConnectorPart().getForms());
 		printMessage(newjob.getFrameworkPart().getForms());
 	
+	}
+	
+	public static void submitJob(SqoopClient client, long jobid) {
+		MSubmission submission = client.startSubmission(jobid);
+		System.out.println("Status : " + submission.getStatus());
+		if(submission.getStatus().isRunning() && submission.getProgress() != -1) {
+		  System.out.println("Progress : " + String.format("%.2f %%", submission.getProgress() * 100));
+		}
+		System.out.println("Hadoop job id :" + submission.getExternalId());
+		System.out.println("Job link : " + submission.getExternalLink());
+		Counters counters = submission.getCounters();
+		if(counters != null) {
+		  System.out.println("Counters:");
+		  for(CounterGroup group : counters) {
+		    System.out.print("\t");
+		    System.out.println(group.getName());
+		    for(Counter counter : group) {
+		      System.out.print("\t\t");
+		      System.out.print(counter.getName());
+		      System.out.print(": ");
+		      System.out.println(counter.getValue());
+		    }
+		  }
+		}
+		if(submission.getExceptionInfo() != null) {
+		  System.out.println("Exception info : " +submission.getExceptionInfo());
+		}
+		
+	}
+	
+	public static void checkJobStatus(SqoopClient client, long jobid) {
+		//Check job status
+		MSubmission submission = client.getSubmissionStatus(jobid);
+		if(submission.getStatus().isRunning() && submission.getProgress() != -1) {
+		  System.out.println("Progress : " + String.format("%.2f %%", submission.getProgress() * 100));
+		}
+		
 	}
 	
 	public static void main(String[] args) {
@@ -194,9 +239,10 @@ public class SqoopClientAccess {
 //		createExportJob(client, "ex_test" + conn1.getPersistenceId(), "SIEBEL", "S_ORDER", null);
 //		client.stopSubmission(2);
 		
-		createImportJob(client, "eximp" + conn1.getPersistenceId(), 
+		long jobid = createImportJob(client, "eximp" + conn1.getPersistenceId(), 
 				"SIEBEL", "S_ORDER", null, "ORDER_DT");
-		
+		submitJob(client, jobid);
+		checkJobStatus(client, jobid);
 		
 	}
 

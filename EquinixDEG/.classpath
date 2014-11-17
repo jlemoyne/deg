@@ -3,7 +3,6 @@
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
 	<classpathentry kind="lib" path="lib/ojdbc6.jar"/>
-	<classpathentry kind="lib" path="lib/sqoop-1.4.4-hadoop200.jar"/>
 	<classpathentry kind="lib" path="lib/hive-jdbc-0.13.1.jar"/>
 	<classpathentry kind="lib" path="lib/hive-service-0.13.1.jar"/>
 	<classpathentry kind="lib" path="lib/slf4j-log4j12-1.7.7.jar"/>
@@ -24,5 +23,7 @@
 	<classpathentry kind="lib" path="lib/jersey-core-1.18.2.jar"/>
 	<classpathentry kind="lib" path="lib/json-simple-1.1.1.jar"/>
 	<classpathentry kind="lib" path="lib/commons-configuration-1.10 copy.jar"/>
+	<classpathentry kind="lib" path="lib/sqoop-1.4.4-hadoop200 2.jar"/>
+	<classpathentry kind="lib" path="lib/sshxcute-1.0.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

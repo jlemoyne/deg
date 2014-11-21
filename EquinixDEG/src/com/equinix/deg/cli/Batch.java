@@ -11,7 +11,14 @@ public class Batch {
 		Hive2 hive2 = new Hive2();
 		Siebel siebel = new Siebel();
 		String hql = siebel.hiveCreateTable(tableName);
+//		String hql = siebel.hiveCreateExternalTable(tableName, 
+//				"/user/gse/SIEBEL.S_ORDER");
 		hive2.executeSql(hql);
+		System.out.println(hql);
+		String loadQuery = "LOAD DATA INPATH '/user/gse/SIEBEL.S_ORDER' "
+				+ "INTO TABLE SIEBEL.S_ORDER";
+		hive2.execSql(loadQuery);
+		System.out.println(".... done!");
 	}
 	
 	public static void main(String[] args) {

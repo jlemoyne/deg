@@ -78,8 +78,8 @@ public class Hive2 {
                 stmt = connect.createStatement();
                 ok = stmt.execute(query);
         } catch (SQLException sqlx) {
-                System.err.println("ERROR in execSQL ! " + sqlx.getMessage() + "\n" +
-                                "$$$$ { " + query + " } " );
+            System.err.println("ERROR in execSQL ! " + sqlx.getMessage() + "\n");
+            System.err.println("$$$$ { " + query + " } " );
         }
         return ok;
 	}
@@ -97,11 +97,13 @@ public class Hive2 {
 		// For testing
 		Hive2 hive2 = new Hive2();
 		
-		hive2.showTables();
-		System.out.println("~~~~~~~~~~~~~~~~~~~");
-		hive2.describeTable("SIEBEL.S_ORDER");
-		System.out.println("~~~~~~~~~~~~~~~~~~~");
-		hive2.describeTable("accounts_test");
+//		hive2.showTables();
+//		System.out.println("~~~~~~~~~~~~~~~~~~~");
+//		hive2.describeTable("SIEBEL.S_ORDER");
+//		System.out.println("~~~~~~~~~~~~~~~~~~~");
+//		hive2.describeTable("accounts_test");
+		
+		
 	}
 
 }

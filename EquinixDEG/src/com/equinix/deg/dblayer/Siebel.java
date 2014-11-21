@@ -26,7 +26,7 @@ public class Siebel {
 	public String username = "etlread";
 	public String password = "etlread";
 	public Connection connection = null;
-	public int verbose = 1;
+	public int verbose = 3;
 	
 	public boolean connected() {
 		try {
@@ -100,8 +100,7 @@ public class Siebel {
         ArrayList<COLNAME_TYPE> allFields = new ArrayList<COLNAME_TYPE>();
         try {
             DatabaseMetaData dbMetaData = connection.getMetaData();
-//            int ncol = dbMetaData.getColumn
-//            ResultSet columnsResultSet = dbMetaData.getColumns(null, null, tableName, null);
+            
             int p = tableName.indexOf(".");
             if (p == -1) {
             		System.err.println("NO SCHEMA name provided - should pass <schema.tablename>");
@@ -109,6 +108,37 @@ public class Siebel {
             }
             String schema_pattern = tableName.substring(0, p);
             String tablename_pattern = tableName.substring(p + 1);
+            
+            ResultSet primaryKeys = dbMetaData.getPrimaryKeys(null, schema_pattern, tablename_pattern);
+            int npk = 0;
+            while (primaryKeys.next()) {
+            		npk++;
+            		if (verbose == 3)
+            			System.out.println(String.format("####### PRIMARY KEY: %s", primaryKeys.getString("COLUMN_NAME")));
+            }
+            if (verbose == 3 && npk == 0)
+            		System.out.println("######### NO PRIMARY KEYS!");
+            
+            ResultSet exportedKeys = dbMetaData.getExportedKeys(null, schema_pattern, tablename_pattern);
+            int nek = 0;
+            while (exportedKeys.next()) {
+            		nek++;
+            		if (verbose == 3)
+            			System.out.println(String.format("####### EXPORTED KEY: %s", exportedKeys.getString("COLUMN_NAME")));
+            }
+            if (verbose == 3 && nek == 0)
+            		System.out.println("######### NO EXPORTED KEYS!");
+            
+            ResultSet importedKeys = dbMetaData.getImportedKeys(null, schema_pattern, tablename_pattern);
+            int nik = 0;
+            while (exportedKeys.next()) {
+            		nik++;
+            		if (verbose == 3)
+            			System.out.println(String.format("####### IMPORTED KEY: %s", importedKeys.getString("COLUMN_NAME")));
+            }
+            if (verbose == 3 && nik == 0)
+            		System.out.println("######### NO IMPORTED KEYS!");
+            
             
             ResultSet columnsResultSet = dbMetaData.getColumns(null, schema_pattern, tablename_pattern, null);
             ResultSetMetaData rsMeta = columnsResultSet.getMetaData();
@@ -160,87 +190,170 @@ public class Siebel {
     }
     
     public String hiveCreateTable(String tableName, COLNAME_TYPE[] colname) {
-    		String hql = String.format("CREATE TABLE IF NOT EXISTS %s (\n", tableName);
-    		int nk = 0;
-    		TreeMap<String, Integer> uncoverted_types = new TreeMap<String, Integer>();
-    		for (int i = 0; i < colname.length; i++) {
-    			if (colname[i].coltype.startsWith("VARCHAR")) {
+		String hql = String.format("CREATE TABLE IF NOT EXISTS %s (\n", tableName);
+		int nk = 0;
+		TreeMap<String, Integer> uncoverted_types = new TreeMap<String, Integer>();
+		for (int i = 0; i < colname.length; i++) {
+			if (colname[i].coltype.startsWith("VARCHAR")) {
+				if ( i == 0)
+					hql += String.format("%s VARCHAR(%d)", 
+						colname[i].colname, colname[i].colprecis);
+				else
+					hql += String.format(",\n%s VARCHAR(%d)", 
+    						colname[i].colname, colname[i].colprecis);
+				nk += 1;
+			} else
+			if (colname[i].coltype.startsWith("NUMBER")) {
+				if ( i == 0)
+					hql += String.format("%s DECIMAL(%d, %d)", 
+						colname[i].colname, colname[i].colprecis, colname[i].colscale);
+				else
+					hql += String.format(",\n%s DECIMAL(%d, %d)", 
+    						colname[i].colname, colname[i].colprecis, colname[i].colscale);
+				nk += 1;
+			} else
+    			if (colname[i].coltype.startsWith("CHAR")) {
     				if ( i == 0)
-    					hql += String.format("%s VARCHAR(%d)", 
+    					hql += String.format("%s CHAR(%d)", 
     						colname[i].colname, colname[i].colprecis);
     				else
-    					hql += String.format(",\n%s VARCHAR(%d)", 
+    					hql += String.format(",\n%s CHAR(%d)", 
         						colname[i].colname, colname[i].colprecis);
     				nk += 1;
-    			} else
-    			if (colname[i].coltype.startsWith("NUMBER")) {
-    				if ( i == 0)
-    					hql += String.format("%s DECIMAL(%d, %d)", 
-    						colname[i].colname, colname[i].colprecis, colname[i].colscale);
-    				else
-    					hql += String.format(",\n%s DECIMAL(%d, %d)", 
-        						colname[i].colname, colname[i].colprecis, colname[i].colscale);
-    				nk += 1;
-    			} else
-        			if (colname[i].coltype.startsWith("CHAR")) {
+    			}
+    			else
+        			if (colname[i].coltype.startsWith("DATE")) {
         				if ( i == 0)
-        					hql += String.format("%s CHAR(%d)", 
-        						colname[i].colname, colname[i].colprecis);
+        					hql += String.format("%s DATE", 
+        						colname[i].colname);
         				else
-        					hql += String.format(",\n%s CHAR(%d)", 
-            						colname[i].colname, colname[i].colprecis);
+        					hql += String.format(",\n%s DATE", 
+            						colname[i].colname);
         				nk += 1;
         			}
-        			else
-            			if (colname[i].coltype.startsWith("DATE")) {
-            				if ( i == 0)
-            					hql += String.format("%s DATE", 
-            						colname[i].colname);
-            				else
-            					hql += String.format(",\n%s DATE", 
-                						colname[i].colname);
-            				nk += 1;
-            			}
-            		else {
-            			uncoverted_types.put(colname[i].coltype, 0);
-            		}
-    		}
-    		hql += ")";
-    		hql += "\nCOMMENT 'CONVERTED From Siebel/Oracle Table'";
-    		hql += "\nPARTITIONED BY(dt_ordered DATE)";
-    		hql += "\nCLUSTERED BY(ORDER_DT) SORTED BY(CUSTOMER_ID) INTO 32 BUCKETS";
-    		hql += "\nROW FORMAT DELIMITED\n\tFIELDS TERMINATED BY \"\\t\"";
-    		hql += "\n\tLINES TERMINATED BY \"\\n\"";
-//    		hql += "\nSTORED AS ORC";
-    		hql += "\nSTORED AS TEXTFILE";
-    		
-    		if (verbose == 1) {
-    			System.out.println(String.format("~~~ #field read: %d, converted: %d", colname.length, nk));
-    		}
-    		
-    		if (uncoverted_types.size() > 0) {
-    			System.err.println("***** NOT ALL COLUMN TYPES WERE CONVERTED! *****");
-    			for (String type: uncoverted_types.keySet()) {
-    				System.err.println(String.format("[[*** %s ***]]", type));
-    			}
-   			
-    		}
-    		
-    		try {
-				PrintWriter writer = new PrintWriter(String.format("/Users/jclaudel/Data/equinix/create_%s.hql", tableName));
-				writer.println(hql);
-				writer.close();
-			} catch (FileNotFoundException e) {
-				e.printStackTrace();
+        		else {
+        			uncoverted_types.put(colname[i].coltype, 0);
+        		}
+		}
+		hql += ")";
+		hql += "\nCOMMENT 'CONVERTED From Siebel/Oracle Table'";
+//		hql += "\nPARTITIONED BY(dt_ordered DATE)";
+//		hql += "\nCLUSTERED BY(ORDER_DT) SORTED BY(CUSTOMER_ID) INTO 32 BUCKETS";
+		hql += "\nROW FORMAT DELIMITED\n\tFIELDS TERMINATED BY '\\t'";
+		hql += "\n\tLINES TERMINATED BY \"\\n\"";
+//		hql += "\nSTORED AS ORC";
+		hql += "\nSTORED AS TEXTFILE";
+		
+		if (verbose == 1) {
+			System.out.println(String.format("~~~ #field read: %d, converted: %d", colname.length, nk));
+		}
+		
+		if (uncoverted_types.size() > 0) {
+			System.err.println("***** NOT ALL COLUMN TYPES WERE CONVERTED! *****");
+			for (String type: uncoverted_types.keySet()) {
+				System.err.println(String.format("[[*** %s ***]]", type));
 			}
-    		return hql;
+			
+		}
+		
+		try {
+			PrintWriter writer = new PrintWriter(String.format("/Users/jclaudel/Data/equinix/create_%s.hql", tableName));
+			writer.println(hql);
+			writer.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+		return hql;
+    }
+
+    public String hiveCreateExternalTable(String tableName, COLNAME_TYPE[] colname, String hdfsLocation) {
+		String hql = String.format("CREATE EXTERNAL TABLE IF NOT EXISTS %s (\n", tableName);
+		int nk = 0;
+		TreeMap<String, Integer> uncoverted_types = new TreeMap<String, Integer>();
+		for (int i = 0; i < colname.length; i++) {
+			if (colname[i].coltype.startsWith("VARCHAR")) {
+				if ( i == 0)
+					hql += String.format("%s VARCHAR(%d)", 
+						colname[i].colname, colname[i].colprecis);
+				else
+					hql += String.format(",\n%s VARCHAR(%d)", 
+    						colname[i].colname, colname[i].colprecis);
+				nk += 1;
+			} else
+			if (colname[i].coltype.startsWith("NUMBER")) {
+				if ( i == 0)
+					hql += String.format("%s DECIMAL(%d, %d)", 
+						colname[i].colname, colname[i].colprecis, colname[i].colscale);
+				else
+					hql += String.format(",\n%s DECIMAL(%d, %d)", 
+    						colname[i].colname, colname[i].colprecis, colname[i].colscale);
+				nk += 1;
+			} else
+    			if (colname[i].coltype.startsWith("CHAR")) {
+    				if ( i == 0)
+    					hql += String.format("%s CHAR(%d)", 
+    						colname[i].colname, colname[i].colprecis);
+    				else
+    					hql += String.format(",\n%s CHAR(%d)", 
+        						colname[i].colname, colname[i].colprecis);
+    				nk += 1;
+    			}
+    			else
+        			if (colname[i].coltype.startsWith("DATE")) {
+        				if ( i == 0)
+        					hql += String.format("%s DATE", 
+        						colname[i].colname);
+        				else
+        					hql += String.format(",\n%s DATE", 
+            						colname[i].colname);
+        				nk += 1;
+        			}
+        		else {
+        			uncoverted_types.put(colname[i].coltype, 0);
+        		}
+		}
+		hql += ")";
+		hql += "\nCOMMENT 'CONVERTED From Siebel/Oracle Table'";
+//		hql += "\nPARTITIONED BY(dt_ordered DATE)";
+//		hql += "\nCLUSTERED BY(ORDER_DT) SORTED BY(CUSTOMER_ID) INTO 32 BUCKETS";
+		hql += "\nROW FORMAT DELIMITED\n\tFIELDS TERMINATED BY '\\t'";
+		hql += "\n\tLINES TERMINATED BY \"\\n\"";
+//		hql += "\nSTORED AS ORC";
+		hql += "\nSTORED AS TEXTFILE";
+		hql += "\nLOCATION '" + hdfsLocation + "'";
+		
+		if (verbose == 1) {
+			System.out.println(String.format("~~~ #field read: %d, converted: %d", colname.length, nk));
+		}
+		
+		if (uncoverted_types.size() > 0) {
+			System.err.println("***** NOT ALL COLUMN TYPES WERE CONVERTED! *****");
+			for (String type: uncoverted_types.keySet()) {
+				System.err.println(String.format("[[*** %s ***]]", type));
+			}
+			
+		}
+		
+		try {
+			PrintWriter writer = new PrintWriter(String.format("/Users/jclaudel/Data/equinix/create_%s.hql", tableName));
+			writer.println(hql);
+			writer.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+		return hql;
     }
 
     public String hiveCreateTable(String tableName) {
-    		COLNAME_TYPE[] colname = getColNameTypes(tableName);
-    		return hiveCreateTable(tableName, colname);
+		COLNAME_TYPE[] colname = getColNameTypes(tableName);
+		return hiveCreateTable(tableName, colname);
     }
-    
+
+    public String hiveCreateExternalTable(String tableName, String hdfsLocation) {
+		COLNAME_TYPE[] colname = getColNameTypes(tableName);
+		return hiveCreateExternalTable(tableName, colname, hdfsLocation);
+    }
+
 	
 	public ResultSet execSql(String query) {
         ResultSet rs = null;
@@ -366,7 +479,8 @@ public class Siebel {
 		System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~");
 		COLNAME_TYPE[] cols = siebel.getColNameTypes(DataTables.table_name[0]);
 		System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~");
-		String hql = siebel.hiveCreateTable(DataTables.table_name[0], cols);
+//		String hql = siebel.hiveCreateTable(DataTables.table_name[0], cols);
+		String hql = siebel.hiveCreateExternalTable(DataTables.table_name[0], "/user/gse/SIEBEL.S_ORDER");
 		System.out.println(hql);
 		
 		System.out.println("============================");
@@ -374,12 +488,14 @@ public class Siebel {
 		
 		System.out.println("============================");
 		String outputPath = "/Users/jclaudel/Data/equinix/s_score.csv";
-		String sql = "SELECT * FROM SIEBEL.S_ORDER";
+
+//		String sql = "SELECT * FROM SIEBEL.S_ORDER";
 //		String sql = "SELECT ORDER_DT FROM SIEBEL.S_ORDER";
-		System.out.println("Downloading table SIEBEL.S_ORDER to " + outputPath + " ...");
+//		System.out.println("Downloading table SIEBEL.S_ORDER to " + outputPath + " ...");
 //		siebel.downloadTable(sql, outputPath);
 //		if (siebel.execSql(sql) != null) System.out.println("SQL OK!");
-		System.out.println("... done!");
+//		System.out.println("... done!");
+
 		
 	}
 

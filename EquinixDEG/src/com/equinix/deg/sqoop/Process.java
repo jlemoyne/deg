@@ -1,9 +1,6 @@
 package com.equinix.deg.sqoop;
 
-import org.apache.hadoop.hive.ql.parse.HiveParser.withAdminOption_return;
 import org.apache.sqoop.Sqoop;
-
-import com.equinix.deg.dblayer.HIVE_PARAMS;
 
 import net.neoremind.sshxcute.core.SSHExec;
 import net.neoremind.sshxcute.core.ConnBean;
@@ -23,21 +20,25 @@ public class Process {
 		}		
 	}
 	
-	public static void sshSqoop(int hive_import_option, String siebelTableName, String hiveTableName) {
+	public static void sshSqoop(int hive_import_option, 
+			String siebelTableName,
+			String hdfsTargetDir,
+			String hiveTableName) {
 		
 		String sqoop_hive_import = "sqoop import "
 	    		+ "--connect jdbc:oracle:thin:@10.193.152.163:1521:INTSBL "
 	    		+ "--username etlread "
 	    		+ "--password etlread "
 	    		+ String.format("--table %s ", siebelTableName)
+	    		+ String.format("--target-dir %s ", hdfsTargetDir)
 	    		+ String.format("--hive-table %s ", hiveTableName)
 	    		+ "--fields-terminated-by '\t' "
 	    		+ "--hive-import "
 	    		+ "--split-by ROW_ID"
 	    		+ "--hive-partition-key dt_ordered "
 	    		+ "--hive-overwrite "
-	    		+ "--null-string '~' "
-	    		+ "--null-non-string '~' "
+	    		+ "--null-string '\b' "
+	    		+ "--null-non-string '\b' "
 	    		+ "-m 1 ";
 		
 		String sqoop_import = "sqoop import "
@@ -45,13 +46,13 @@ public class Process {
 	    		+ "--username etlread "
 	    		+ "--password etlread "
 	    		+ String.format("--table %s ", siebelTableName)
-	    		+ "--target-dir SIEBEL.S_ORDER2 "
+	    		+ String.format("--target-dir %s ", hdfsTargetDir)
 	    		+ String.format("--hive-table %s ", hiveTableName)
 	    		+ "--fields-terminated-by '\t' "
 	    		+ "--split-by ROW_ID"
 	    		+ "--hive-overwrite "
-	    		+ "--null-string '~' "
-	    		+ "--null-non-string '~' "
+	    		+ "--null-string '\b' "
+	    		+ "--null-non-string '\b' "
 	    		+ "-m 1 ";
 		
 	    // Initialize a ConnBean object, parameter list is ip, username, password
@@ -84,8 +85,8 @@ public class Process {
 	
 	
 	public static void main(String[] args) {
-//		sshSqoop(WITHOUT_HIVE_IMPORT_OPTION, "SIEBEL.S_ORDER", "SIEBEL.OREDER");
-		sshSqoop(WITHOUT_HIVE_IMPORT_OPTION, "SIEBEL.S_ORDER", "SIEBEL.OREDER");
+//		sshSqoop(WITHOUT_HIVE_IMPORT_OPTION, "SIEBEL.S_ORDER", "SIEBEL.S_ORDER", "SIEBEL.S_ORDER");
+		sshSqoop(WITHOUT_HIVE_IMPORT_OPTION, "SIEBEL.S_ORDER", "SIEBEL.S_ORDER", "SIEBEL.S_ORDER");
 	}
 
 }

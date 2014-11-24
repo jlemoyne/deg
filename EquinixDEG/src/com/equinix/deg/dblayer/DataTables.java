@@ -1,5 +1,7 @@
 package com.equinix.deg.dblayer;
 
+import java.util.HashMap;
+
 public class DataTables {
 	public static String[] table_name = {
 		"SIEBEL.S_ORDER",
@@ -27,5 +29,7 @@ public class DataTables {
 		"SIEBEL.S_EVT_ACT_X",
 		"SIEBEL.S_NOTE_CLAIM	"	 		
 	};
+	
+	public static HashMap<String, PARTITION> table_partition = new HashMap<String, PARTITION>();
 
 }

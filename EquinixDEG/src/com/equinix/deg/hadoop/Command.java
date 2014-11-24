@@ -1,66 +1,38 @@
 package com.equinix.deg.hadoop;
 
 import java.io.IOException;
-import java.net.URI;
 import java.net.URISyntaxException;
-import java.security.PrivilegedExceptionAction;
-
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hdfs.DistributedFileSystem;
-import org.apache.hadoop.security.UserGroupInformation;
+import net.neoremind.sshxcute.core.ConnBean;
+import net.neoremind.sshxcute.core.Result;
+import net.neoremind.sshxcute.core.SSHExec;
+import net.neoremind.sshxcute.exception.TaskExecFailException;
+import net.neoremind.sshxcute.task.CustomTask;
+import net.neoremind.sshxcute.task.impl.ExecCommand;
 
 public class Command {
 	
-	public static void methodOne() {
-        try {
-            UserGroupInformation ugi
-                = UserGroupInformation.createRemoteUser("gse");
+	public static void sshx(String cmd) {
+	    // Initialize a ConnBean object, parameter list is ip, username, password
+	    ConnBean cb = new ConnBean("sv2lxgsed03.corp.equinix.com", "gse","welcome1");
 
-            ugi.doAs(new PrivilegedExceptionAction<Void>() {
-
-                public Void run() throws Exception {
-
-                    Configuration conf = new Configuration();
-                    conf.set("fs.defaultFS", "hdfs://sv2lxgsed01.corp.equinix.com:8020/user/gse/xxx");
-                    conf.set("hadoop.job.ugi", "gse");
-
-                    FileSystem fs = FileSystem.get(conf);
-
-                    fs.createNewFile(new Path("/user/gse/xxx/test"));
-
-                    FileStatus[] status = fs.listStatus(new Path("/user/gse/xxx"));
-                    for(int i=0;i<status.length;i++){
-                        System.out.println(status[i].getPath());
-                    }
-                    return null;
-                }
-            });
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+	    // Put the ConnBean instance as parameter for SSHExec static method getInstance(ConnBean) to retrieve a singleton SSHExec instance
+	    SSHExec ssh = SSHExec.getInstance(cb);          
+	    // Connect to server
+	    ssh.connect();
+	    CustomTask sampleTask1 = new ExecCommand(cmd); 
+	    try {
+			System.out.println(ssh.exec(sampleTask1));			
+		    Result res = ssh.exec(sampleTask1);
+		    ssh.disconnect();   
+		} catch (TaskExecFailException e) {
+			e.printStackTrace();
+		}
 		
 	}
-	
-	public static void methodTwo() throws IOException {
-	    Configuration conf = new Configuration();
-	    conf.set("fs.default.name","hdfs://10.193.153.186:9000/");
-	    FileSystem fileSystem = FileSystem.get(conf);
-//	    FileSystem fileSystem = FileSystem.get(new URI("hdfs://10.193.153.186:54310"),conf);
-	    if(fileSystem instanceof DistributedFileSystem) {
-	      System.out.println("HDFS is the underlying filesystem");
-	    }
-	    else {
-	      System.out.println("Other type of file system "+fileSystem.getClass());
-	    }
-		
-	}
-	
 
 	public static void main(String[] args) throws IOException, URISyntaxException {
-		methodOne();
+//		hdfsx("ls");
+		sshx("hdfs dfs -ls /user/gse");
 	}
 
 }

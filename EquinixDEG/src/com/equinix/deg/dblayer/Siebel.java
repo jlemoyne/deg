@@ -28,6 +28,7 @@ public class Siebel {
 	public Connection connection = null;
 	public int verbose = 3;
 	
+		
 	public boolean connected() {
 		try {
 			 
@@ -189,7 +190,7 @@ public class Siebel {
         return colnametype;
     }
     
-    public String hiveCreateTable(String tableName, COLNAME_TYPE[] colname) {
+    public String hiveCreateTable(String tableName, COLNAME_TYPE[] colname, PARTITION_TUPLE partition) {
 		String hql = String.format("CREATE TABLE IF NOT EXISTS %s (\n", tableName);
 		int nk = 0;
 		TreeMap<String, Integer> uncoverted_types = new TreeMap<String, Integer>();
@@ -237,10 +238,12 @@ public class Siebel {
 		}
 		hql += ")";
 		hql += "\nCOMMENT 'CONVERTED From Siebel/Oracle Table'";
-//		hql += "\nPARTITIONED BY(dt_ordered DATE)";
+		if (partition != null)
+			hql += "\nPARTITIONED BY " + partition.getPartitionDefinition();
 //		hql += "\nCLUSTERED BY(ORDER_DT) SORTED BY(CUSTOMER_ID) INTO 32 BUCKETS";
 		hql += "\nROW FORMAT DELIMITED\n\tFIELDS TERMINATED BY '\\t'";
 		hql += "\n\tLINES TERMINATED BY \"\\n\"";
+		hql += "\nNULL DEFINED AS '\\b'";
 //		hql += "\nSTORED AS ORC";
 		hql += "\nSTORED AS TEXTFILE";
 		
@@ -266,7 +269,10 @@ public class Siebel {
 		return hql;
     }
 
-    public String hiveCreateExternalTable(String tableName, COLNAME_TYPE[] colname, String hdfsLocation) {
+    public String hiveCreateExternalTable(String tableName, 
+    										COLNAME_TYPE[] colname, 
+    										String hdfsLocation, 
+    										PARTITION_TUPLE partition) {
 		String hql = String.format("CREATE EXTERNAL TABLE IF NOT EXISTS %s (\n", tableName);
 		int nk = 0;
 		TreeMap<String, Integer> uncoverted_types = new TreeMap<String, Integer>();
@@ -301,10 +307,10 @@ public class Siebel {
     			else
         			if (colname[i].coltype.startsWith("DATE")) {
         				if ( i == 0)
-        					hql += String.format("%s DATE", 
+        					hql += String.format("%s TIMESTAMP", 
         						colname[i].colname);
         				else
-        					hql += String.format(",\n%s DATE", 
+        					hql += String.format(",\n%s TIMESTAMP", 
             						colname[i].colname);
         				nk += 1;
         			}
@@ -314,10 +320,12 @@ public class Siebel {
 		}
 		hql += ")";
 		hql += "\nCOMMENT 'CONVERTED From Siebel/Oracle Table'";
-//		hql += "\nPARTITIONED BY(dt_ordered DATE)";
+		if (partition != null)
+			hql += "\nPARTITIONED BY " + partition.getPartitionDefinition();
 //		hql += "\nCLUSTERED BY(ORDER_DT) SORTED BY(CUSTOMER_ID) INTO 32 BUCKETS";
 		hql += "\nROW FORMAT DELIMITED\n\tFIELDS TERMINATED BY '\\t'";
 		hql += "\n\tLINES TERMINATED BY \"\\n\"";
+		hql += "\nNULL DEFINED AS '\\b'";
 //		hql += "\nSTORED AS ORC";
 		hql += "\nSTORED AS TEXTFILE";
 		hql += "\nLOCATION '" + hdfsLocation + "'";
@@ -344,14 +352,14 @@ public class Siebel {
 		return hql;
     }
 
-    public String hiveCreateTable(String tableName) {
-		COLNAME_TYPE[] colname = getColNameTypes(tableName);
-		return hiveCreateTable(tableName, colname);
+    public String hiveCreateTable(String siebelTableName, String hiveTableName, PARTITION_TUPLE partition) {
+		COLNAME_TYPE[] colname = getColNameTypes(siebelTableName);
+		return hiveCreateTable(hiveTableName, colname, partition);
     }
 
-    public String hiveCreateExternalTable(String tableName, String hdfsLocation) {
+    public String hiveCreateExternalTable(String tableName, String hdfsLocation, PARTITION_TUPLE partition) {
 		COLNAME_TYPE[] colname = getColNameTypes(tableName);
-		return hiveCreateExternalTable(tableName, colname, hdfsLocation);
+		return hiveCreateExternalTable(tableName, colname, hdfsLocation, partition);
     }
 
 	
@@ -480,7 +488,7 @@ public class Siebel {
 		COLNAME_TYPE[] cols = siebel.getColNameTypes(DataTables.table_name[0]);
 		System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~");
 //		String hql = siebel.hiveCreateTable(DataTables.table_name[0], cols);
-		String hql = siebel.hiveCreateExternalTable(DataTables.table_name[0], "/user/gse/SIEBEL.S_ORDER");
+		String hql = siebel.hiveCreateExternalTable(DataTables.table_name[0], "/user/gse/SIEBEL.S_ORDER", null);
 		System.out.println(hql);
 		
 		System.out.println("============================");

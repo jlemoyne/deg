@@ -42,6 +42,11 @@ public class Hive2 {
 		}    	
     	
     }
+    
+    public boolean dropTable(String tableName) {
+        String sql = "drop table " + tableName;
+        return executeSql(sql);
+    }
 	
     public boolean connected() {
         try {

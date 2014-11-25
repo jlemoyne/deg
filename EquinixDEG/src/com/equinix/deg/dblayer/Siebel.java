@@ -225,10 +225,10 @@ public class Siebel {
     			else
         			if (colname[i].coltype.startsWith("DATE")) {
         				if ( i == 0)
-        					hql += String.format("%s DATE", 
+        					hql += String.format("%s TIMESTAMP", 
         						colname[i].colname);
         				else
-        					hql += String.format(",\n%s DATE", 
+        					hql += String.format(",\n%s TIMESTAMP", 
             						colname[i].colname);
         				nk += 1;
         			}

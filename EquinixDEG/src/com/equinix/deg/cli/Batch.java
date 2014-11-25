@@ -59,6 +59,31 @@ public class Batch {
 		System.out.println(".... done!");
 	}
 	
+	public void sqoopImportJob(int tablex)  {
+		String tableName = DataTables.table_name[tablex];
+		Process.	sshSqoop(Process.WITHOUT_HIVE_IMPORT_OPTION, tableName, tableName, tableName);
+	}
+	
+	public void importLoadToHiveJob(int tablex) {
+		String tableName = DataTables.table_name[tablex];
+
+		PARTITION_TUPLE partition = new PARTITION_TUPLE();
+		partition.addPartCol("orderdt", "1");
+		
+		Hive2 hive2 = new Hive2();
+		Siebel siebel = new Siebel();
+		
+		String hql_with_partition = siebel.hiveCreateTable(tableName, tableName, partition);
+		hive2.executeSql(hql_with_partition);
+		System.out.println(hql_with_partition);
+		
+		loadHdfsDataIntoHiveTable(hive2, tableName, partition);
+						
+		System.out.println(".... done!");
+	}
+	
+	
+	
 	public void importSiebelTableIntoExternalPartitionedHiveTable(int tablex) {
 		String tableName = DataTables.table_name[tablex];
 		// import to HDFS
@@ -89,7 +114,13 @@ public class Batch {
 		Batch batch = new Batch();
 //		batch.test_siebel_to_hive_table_deninition(0);
 //		batch.importSiebelTableIntoExternalHiveTable(0);
+		
+		// step 1 and 2 for importing
+//		batch.sqoopImportJob(0);
+//		batch.importLoadToHiveJob(0);
+		
 		batch.importSiebelTableIntoExternalPartitionedHiveTable(0);
+		
 //		batch.addPartitionToHiveTable(DataTables.table_name[0], "orderdt");
 	}
 

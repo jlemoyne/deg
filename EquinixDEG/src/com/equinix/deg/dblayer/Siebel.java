@@ -204,15 +204,22 @@ public class Siebel {
     						colname[i].colname, colname[i].colprecis);
 				nk += 1;
 			} else
-			if (colname[i].coltype.startsWith("NUMBER")) {
-				if ( i == 0)
-					hql += String.format("%s DECIMAL(%d, %d)", 
-						colname[i].colname, colname[i].colprecis, colname[i].colscale);
-				else
-					hql += String.format(",\n%s DECIMAL(%d, %d)", 
-    						colname[i].colname, colname[i].colprecis, colname[i].colscale);
-				nk += 1;
-			} else
+				if (colname[i].coltype.startsWith("NUMBER")) {
+					if ( i == 0)
+						hql += String.format("%s DECIMAL(%d, %d)", 
+							colname[i].colname, colname[i].colprecis, colname[i].colscale);
+					else
+						hql += String.format(",\n%s DECIMAL(%d, %d)", 
+	    						colname[i].colname, colname[i].colprecis, colname[i].colscale);
+					nk += 1;
+				} else
+					if (colname[i].coltype.startsWith("LONG")) {
+						if ( i == 0)
+							hql += String.format("%s BIGINT", colname[i].colname);
+						else
+							hql += String.format(",\n%s BIGINT", colname[i].colname);
+						nk += 1;
+					} else
     			if (colname[i].coltype.startsWith("CHAR")) {
     				if ( i == 0)
     					hql += String.format("%s CHAR(%d)", 
@@ -223,6 +230,16 @@ public class Siebel {
     				nk += 1;
     			}
     			else
+        			if (colname[i].coltype.startsWith("CLOB")) {
+        				if ( i == 0)
+        					hql += String.format("%s STRING", 
+        						colname[i].colname, colname[i].colprecis);
+        				else
+        					hql += String.format(",\n%s STRING", 
+            						colname[i].colname, colname[i].colprecis);
+        				nk += 1;
+        			}
+        			else
         			if (colname[i].coltype.startsWith("DATE")) {
         				if ( i == 0)
         					hql += String.format("%s TIMESTAMP", 
@@ -295,7 +312,14 @@ public class Siebel {
     						colname[i].colname, colname[i].colprecis, colname[i].colscale);
 				nk += 1;
 			} else
-    			if (colname[i].coltype.startsWith("CHAR")) {
+				if (colname[i].coltype.startsWith("LONG")) {
+					if ( i == 0)
+						hql += String.format("%s BIGINT", colname[i].colname);
+					else
+						hql += String.format(",\n%s BIGINT", colname[i].colname);
+					nk += 1;
+				} else
+   			if (colname[i].coltype.startsWith("CHAR")) {
     				if ( i == 0)
     					hql += String.format("%s CHAR(%d)", 
     						colname[i].colname, colname[i].colprecis);
@@ -304,7 +328,17 @@ public class Siebel {
         						colname[i].colname, colname[i].colprecis);
     				nk += 1;
     			}
-    			else
+			else
+    			if (colname[i].coltype.startsWith("CLOB")) {
+    				if ( i == 0)
+    					hql += String.format("%s STRING", 
+    						colname[i].colname, colname[i].colprecis);
+    				else
+    					hql += String.format(",\n%s STRING", 
+        						colname[i].colname, colname[i].colprecis);
+    				nk += 1;
+    			}
+   			else
         			if (colname[i].coltype.startsWith("DATE")) {
         				if ( i == 0)
         					hql += String.format("%s TIMESTAMP", 
@@ -485,24 +519,29 @@ public class Siebel {
 		
 		System.out.println(String.format("Total Row Volume: %d", volume));
 		System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~");
-		COLNAME_TYPE[] cols = siebel.getColNameTypes(DataTables.table_name[0]);
 		System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~");
-//		String hql = siebel.hiveCreateTable(DataTables.table_name[0], cols);
-		String hql = siebel.hiveCreateExternalTable(DataTables.table_name[0], "/user/gse/SIEBEL.S_ORDER", null);
-		System.out.println(hql);
+		for (int i = 0; i < DataTables.table_name.length; i++) {
+			COLNAME_TYPE[] cols = siebel.getColNameTypes(DataTables.table_name[i]);
+			String hql = siebel.hiveCreateTable(DataTables.table_name[i], cols, null);
+//			String hql = siebel.hiveCreateExternalTable(DataTables.table_name[0], "/user/gse/SIEBEL.S_ORDER", null);
+			System.out.println(hql);
+		}
 		
 		System.out.println("============================");
-		cols = siebel.getAllFields(DataTables.table_name[0]);
+		COLNAME_TYPE[] cols = siebel.getAllFields(DataTables.table_name[0]);
 		
 		System.out.println("============================");
-		String outputPath = "/Users/jclaudel/Data/equinix/s_score.csv";
-
-//		String sql = "SELECT * FROM SIEBEL.S_ORDER";
-//		String sql = "SELECT ORDER_DT FROM SIEBEL.S_ORDER";
-//		System.out.println("Downloading table SIEBEL.S_ORDER to " + outputPath + " ...");
-//		siebel.downloadTable(sql, outputPath);
+		String outputPath = "/Users/jclaudel/Data/equinix/";
+		
+//		for (String tableName: DataTables.table_name) {
+//			String sql = "SELECT * FROM " + tableName;
+//	//		String sql = "SELECT ORDER_DT FROM SIEBEL.S_ORDER";
+//			String fname = outputPath + tableName.replace('.', '_') + ".csv";
+//			System.out.println(String.format("Downloading table %s into %s" , tableName, fname));
+//			siebel.downloadTable(sql, fname);
+//		}
 //		if (siebel.execSql(sql) != null) System.out.println("SQL OK!");
-//		System.out.println("... done!");
+		System.out.println("... done!");
 
 		
 	}

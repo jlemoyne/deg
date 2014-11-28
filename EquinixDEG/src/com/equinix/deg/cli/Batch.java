@@ -5,7 +5,13 @@ import com.equinix.deg.dblayer.Hive2;
 import com.equinix.deg.dblayer.PARTITION_TUPLE;
 import com.equinix.deg.dblayer.Siebel;
 import com.equinix.deg.sqoop.Process;
-
+/**
+ * 
+ * @author jclaudel
+ *
+ *	This is where bath runs are executed
+ *
+ */
 public class Batch {
 
 	public void test_siebel_to_hive_table_deninition(int tablex) {
